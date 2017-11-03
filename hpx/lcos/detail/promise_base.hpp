@@ -196,7 +196,7 @@ namespace lcos {
             }
 
             promise_base(promise_base&& other) noexcept
-                : base_type(std::move(other)),
+                : base_type(std::move(static_cast<base_type&&>(other))),
                   id_retrieved_(other.id_retrieved_),
                   id_(std::move(other.id_)),
                   addr_(std::move(other.addr_))
@@ -215,7 +215,7 @@ namespace lcos {
 
             promise_base& operator=(promise_base&& other) noexcept
             {
-                base_type::operator=(std::move(other));
+                base_type::operator=(std::move(static_cast<base_type&&>(other)));
                 id_retrieved_ = other.id_retrieved_;
                 id_ = std::move(other.id_);
                 addr_ = std::move(other.addr_);

@@ -240,6 +240,7 @@ namespace hpx { namespace parallel { inline namespace v1
 
                 // Not reachable.
                 HPX_ASSERT(false);
+                return;
             }
 
             fut.get();

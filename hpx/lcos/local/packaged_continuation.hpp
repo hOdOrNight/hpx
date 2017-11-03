@@ -210,7 +210,10 @@ namespace hpx { namespace lcos { namespace detail
     public:
         typedef typename base_type::init_no_addref init_no_addref;
 
-        template <typename Func>
+        template <typename Func, typename Enable = typename
+            std::enable_if<
+                !std::is_same<typename hpx::util::decay<Func>::type,
+                    continuation>::value>::type>
         continuation(Func && f)
           : started_(false), id_(threads::invalid_thread_id)
           , f_(std::forward<Func>(f))
