@@ -181,7 +181,7 @@ namespace hpx { namespace parallel { namespace execution
 
                 typename hpx::traits::detail::shared_state_ptr<result_type>::type
                     p = lcos::detail::make_continuation_exec<result_type>(
-                            std::forward<Future>(predecessor), 
+                            std::forward<Future>(predecessor),
                             std::forward<OneWayExecutor>(exec),
                             std::move(func));
 
@@ -987,8 +987,7 @@ namespace hpx { namespace parallel { namespace execution
             template <typename BulkExecutor, typename F, typename Shape,
                 typename ... Ts>
             HPX_FORCEINLINE static auto
-            call(BulkExecutor && exec, F && f, Shape const& shape,
-                    Ts &&... ts)
+            call(BulkExecutor && exec, F && f, Shape const& shape, Ts &&... ts)
             ->  decltype(call_impl(
                     0, std::forward<BulkExecutor>(exec), std::forward<F>(f),
                     shape, std::forward<Ts>(ts)...
@@ -1008,8 +1007,7 @@ namespace hpx { namespace parallel { namespace execution
             template <typename BulkExecutor, typename F, typename Shape,
                 typename ... Ts>
             HPX_FORCEINLINE static auto
-            call(BulkExecutor && exec, F && f, Shape const& shape,
-                    Ts &&... ts)
+            call(BulkExecutor && exec, F && f, Shape const& shape, Ts &&... ts)
             ->  decltype(bulk_sync_execute_dispatch(
                     0, std::forward<BulkExecutor>(exec), std::forward<F>(f),
                     shape, std::forward<Ts>(ts)...
@@ -1102,7 +1100,7 @@ namespace hpx { namespace parallel { namespace execution
             static auto
             call_impl(std::false_type,
                     BulkExecutor && exec, F && f, Shape const& shape,
-                    Future predecessor, Ts &&... ts)
+                    Future && predecessor, Ts &&... ts)
             ->  hpx::future<typename bulk_then_execute_result<
                         F, Shape, Future, Ts...
                     >::type>
@@ -1119,7 +1117,7 @@ namespace hpx { namespace parallel { namespace execution
                     ->  result_type
                     {
                         return fused_bulk_sync_execute(
-                                exec, f, shape, predecessor,
+                                exec, f, shape, std::move(predecessor),
                                 typename hpx::util::detail::make_index_pack<
                                     sizeof...(Ts)
                                 >::type(), args);
@@ -1131,8 +1129,8 @@ namespace hpx { namespace parallel { namespace execution
 
                 shared_state_type p =
                     lcos::detail::make_continuation_exec<result_type>(
-                        predecessor, std::forward<BulkExecutor>(exec),
-                        std::move(func));
+                        std::forward<Future>(predecessor),
+                        std::forward<BulkExecutor>(exec), std::move(func));
 
                 return hpx::traits::future_access<hpx::future<result_type> >::
                     create(std::move(p));
@@ -1143,7 +1141,7 @@ namespace hpx { namespace parallel { namespace execution
             static hpx::future<void>
             call_impl(std::true_type,
                 BulkExecutor && exec, F && f, Shape const& shape,
-                Future predecessor, Ts &&... ts)
+                Future && predecessor, Ts &&... ts)
             {
                 // older versions of gcc are not able to capture parameter
                 // packs (gcc < 4.9)
@@ -1152,7 +1150,7 @@ namespace hpx { namespace parallel { namespace execution
                     [exec, f, shape, args](Future predecessor) mutable -> void
                     {
                         fused_bulk_sync_execute(
-                            exec, f, shape, predecessor,
+                            exec, f, shape, std::move(predecessor),
                             typename hpx::util::detail::make_index_pack<
                                 sizeof...(Ts)
                             >::type(), args);
@@ -1160,11 +1158,11 @@ namespace hpx { namespace parallel { namespace execution
 
                 typename hpx::traits::detail::shared_state_ptr<void>::type p =
                     lcos::detail::make_continuation_exec<void>(
-                        predecessor, std::forward<BulkExecutor>(exec),
-                        std::move(func));
+                        std::forward<Future>(predecessor),
+                        std::forward<BulkExecutor>(exec), std::move(func));
 
-                return hpx::traits::future_access<hpx::future<void> >::
-                    create(std::move(p));
+                return hpx::traits::future_access<hpx::future<void>>::create(
+                    std::move(p));
             }
 
             template <typename BulkExecutor, typename F, typename Shape,
@@ -1172,7 +1170,7 @@ namespace hpx { namespace parallel { namespace execution
             HPX_FORCEINLINE static auto
             call_impl(hpx::traits::detail::wrap_int,
                     BulkExecutor && exec, F && f, Shape const& shape,
-                    Future predecessor, Ts &&... ts)
+                    Future && predecessor, Ts &&... ts)
             ->  hpx::future<typename bulk_then_execute_result<
                         F, Shape, Future, Ts...
                     >::type>
@@ -1184,8 +1182,8 @@ namespace hpx { namespace parallel { namespace execution
                     >::type is_void;
 
                 return bulk_then_execute_fn_helper::call_impl(is_void(),
-                    std::forward<BulkExecutor>(exec), std::forward<F>(f),
-                    shape, predecessor, std::forward<Ts>(ts)...);
+                    std::forward<BulkExecutor>(exec), std::forward<F>(f), shape,
+                    std::forward<Future>(predecessor), std::forward<Ts>(ts)...);
             }
 
             template <typename BulkExecutor, typename F, typename Shape,
@@ -1199,8 +1197,8 @@ namespace hpx { namespace parallel { namespace execution
                     std::forward<Ts>(ts)...
                 ))
             {
-                return exec.bulk_then_execute(std::forward<F>(f),
-                    shape, std::forward<Future>(predecessor), std::forward<Ts>(ts)...);
+                return exec.bulk_then_execute(std::forward<F>(f), shape,
+                    std::forward<Future>(predecessor), std::forward<Ts>(ts)...);
             }
 
             template <typename BulkExecutor, typename F, typename Shape,
@@ -1234,9 +1232,9 @@ namespace hpx { namespace parallel { namespace execution
                 std::forward<Future>(predecessor), hpx::util::get<Is>(args)...
             ))
         {
-            return execution::bulk_async_execute(
-                std::forward<Executor>(exec), std::forward<F>(f),
-                shape, std::forward<Future>(predecessor), hpx::util::get<Is>(args)...);
+            return execution::bulk_async_execute(std::forward<Executor>(exec),
+                std::forward<F>(f), shape, std::forward<Future>(predecessor),
+                hpx::util::get<Is>(args)...);
         }
 
         template <typename Executor>
@@ -1278,7 +1276,7 @@ namespace hpx { namespace parallel { namespace execution
                     ->  result_type
                     {
                         return fused_bulk_async_execute(
-                            exec, f, shape, predecessor,
+                            exec, f, shape, std::move(predecessor),
                             typename hpx::util::detail::make_index_pack<
                                 sizeof...(Ts)
                             >::type(), args);
@@ -1290,11 +1288,11 @@ namespace hpx { namespace parallel { namespace execution
 
                 shared_state_type p =
                     lcos::detail::make_continuation_exec<result_type>(
-                        predecessor, std::forward<BulkExecutor>(exec),
-                        std::move(func));
+                        std::forward<Executor>(predecessor),
+                        std::forward<BulkExecutor>(exec), std::move(func));
 
-                return hpx::traits::future_access<result_future_type>::
-                    create(std::move(p));
+                return hpx::traits::future_access<result_future_type>::create(
+                    std::move(p));
             }
 
             template <typename BulkExecutor, typename F, typename Shape,
